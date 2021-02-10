@@ -1,15 +1,15 @@
 import './assets/scss/styles.scss';
-
-const moment = require('moment');
+import moment from 'moment';
 
 const SECOND = 1000; // 1000ミリ秒
 const MINUTE = 60 * SECOND; // 1分のミリ秒数
-// const DAY = 24 * 60 * MINUTE; // 1日のミリ秒数
+const DAY = 24 * 60 * MINUTE; // 1日のミリ秒数
 
 class App {
   constructor() {
     this.workLength = 25; // 25分間
     this.breakLength = 5; // 5分間
+    this.ongBreakLength = 15; // 15分間
     this.isTimerStopped = true; // 最初はタイマーは止まっている
     this.onWork = true; // 最初は作業からタイマーは始まる
 
@@ -20,20 +20,44 @@ class App {
     this.startTimer = this.startTimer.bind(this);
     this.updateTimer = this.updateTimer.bind(this);
     this.displayTime = this.displayTime.bind(this);
+    this.stopTimer = this.stopTimer.bind(this);
+    this.getHistory = App.getHistory.bind(this);
+    this.saveIntervalData = this.saveIntervalData.bind(this);
+    this.displayCyclesToday = this.displayCyclesToday.bind(this);
+    this.displayHistory = this.displayHistory.bind(this);
 
+    this.resetValues();
     this.getElements();
     this.toggleEvents();
     this.displayTime();
+    this.displayCyclesToday();
+    this.displayHistory();
+    this.removeOldHistory();
     // 初期化時にdisplayTimeを呼び出す。
   }
 
   getElements() {
     this.timeDisplay = document.getElementById('time-display');
-    this.startButton = document.getElementById('start-button'); // スタートボタン
-    this.stopButton = document.getElementById('stop-button'); // ストップボタン
+    this.countOfTodayDisplay = document.getElementById('count-today');
+    this.percentOfTodayDisplay = document.getElementById('percent-today');
+    this.historyDisplay = document.getElementById('history');
+    this.startButton = document.getElementById('start-button');
+    this.stopButton = document.getElementById('stop-button');
   }
 
   updateTimer(time = moment()) {
+    const rest = this.endAt.diff(time); // 残り時間を取得
+    if (rest <= 0) { // 残り時間が0以下の場合に切り替えを行う。
+      if (this.onWork) {
+        this.saveIntervalData(time); // 作業時からの切り替り時のみsaveIntervalを呼び出す。
+        this.displayCyclesToday();
+        this.displayHistory();
+      }
+      this.onWork = !this.onWork;
+      this.startAt = time;
+      this.endAt = this.onWork ? moment(time).add(this.workLength, 'minutes')
+        : moment(time).add(this.breakLength, 'minutes');
+    }
     this.displayTime(time);
   }
 
@@ -59,6 +83,7 @@ class App {
 
   toggleEvents() {
     this.startButton.addEventListener('click', this.startTimer);
+    this.stopButton.addEventListener('click', this.stopTimer); // ストップボタンに対するクリックイベントでstopTimerファンクションを呼び出す。
   }
 
   startTimer(e = null, time = moment()) {
@@ -74,6 +99,98 @@ class App {
     this.timerUpdater = window.setInterval(this.updateTimer, 500);
     // タイムラグがあるので、0.5秒ごとにアップデートする。
     this.displayTime();
+  }
+
+  resetValues() {
+    this.workLength = 25;
+    this.breakLength = 5;
+    this.startAt = null;
+    this.endAt = null;
+    this.isTimerStopped = true;
+    this.onWork = true;
+  }
+
+  stopTimer(e = null) {
+    if (e) e.preventDefault();
+    this.resetValues();
+    this.startButton.disabled = false;
+    this.stopButton.disabled = true;
+    window.clearInterval(this.timerUpdater);
+    this.timerUpdater = null;
+    this.displayTime();
+  }
+
+  static getHistory() {
+    const items = localStorage.getItem('intervalData');
+    let collection = [];
+    // localStorageにはArrayを直接保存出来ないので、JSON形式で保存しています。
+    // 取り出す時は、JSON.parseでarrayに戻します。
+    if (items) collection = JSON.parse(items);
+    return collection;
+  }
+
+  saveIntervalData(momentItem) {
+    const collection = this.getHistory(); // 既に保存されているデータの取得。
+    collection.push(momentItem.valueOf()); // 新しいデータを追加する。
+    // JSON形式で再度保存する。
+    localStorage.setItem('intervalData', JSON.stringify(collection));
+  }
+
+  displayCyclesToday(time = moment()) {
+    const collection = this.getHistory();
+    const startOfToday = time.startOf('day');
+    // 今日の始まりより後の時間のデータのみを取得してfilterItemsに格納する。
+    const filterItems = collection.filter(item => (
+      parseInt(item, 10) >= startOfToday.valueOf()
+    ));
+    const count = filterItems.length;
+    const percent = count / 4 * 100;
+    this.countOfTodayDisplay.innerHTML = `${count.toString()}回 / 4回`;
+    this.percentOfTodayDisplay.innerHTML = `目標を${percent}％達成中です。`;
+  }
+
+  displayHistory(time = moment()) {
+    const collection = this.getHistory();
+    const startOfToday = time.startOf('day');
+    const startOfTodayClone = moment(startOfToday);
+    const sevenDaysAgo = startOfTodayClone.subtract(7, 'days');
+    const valOfSevenDaysAgo = sevenDaysAgo.valueOf();
+    const tableEl = document.createElement('table');
+    tableEl.classList.add('table', 'table-bordered');
+    const trElDate = document.createElement('tr');
+    const trElCount = document.createElement('tr');
+    for (let i = 0; i <= 6; i += 1) {
+      const filterItems = collection.filter((item) => {
+        const timestampOfItem = parseInt(item, 10);
+        return timestampOfItem >= valOfSevenDaysAgo + i * DAY
+          && timestampOfItem < valOfSevenDaysAgo + (i + 1) * DAY;
+      });
+      const count = filterItems.length;
+      const thElDate = document.createElement('th');
+      const tdElCount = document.createElement('td');
+      const sevenDaysAgoCloen = moment(sevenDaysAgo);
+      thElDate.innerHTML = sevenDaysAgoCloen.add(i, 'day').format('MM月DD日');
+      tdElCount.innerHTML = `${count}回<br>達成率${count / 4 * 100}%`;
+      trElDate.appendChild(thElDate);
+      trElCount.appendChild(tdElCount);
+    }
+    tableEl.appendChild(trElDate);
+    tableEl.appendChild(trElCount);
+    this.historyDisplay.appendChild(tableEl);
+  }
+
+  removeOldHistory() {
+    const now = moment();
+    const startOfToday = now.startOf('day'); // 今日の開始時
+    const sevenDaysAgo = startOfToday.subtract(7, 'days'); // 今日の開始時から7日前
+    const collection = this.getHistory();
+    // フィルター関数で今日の開始時から今日の開始時から7日前までの間のデータのみを取得する
+    const newCollection = collection.filter((item) => {
+      const timestampOfItem = parseInt(item, 10);
+      return timestampOfItem >= sevenDaysAgo;
+    });
+    // 取得したデータを再度保存する。
+    localStorage.setItem('intervalData', JSON.stringify(newCollection));
   }
 }
 
