@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import './assets/scss/styles.scss';
 import moment from 'moment';
 
@@ -16,11 +17,14 @@ class App {
     this.timeDisplay = document.getElementById('time-display');
     this.startAt = null; // カウントダウン開始時の時間
     this.endAt = null; // カウントダウン終了時の時間
+    this.tempCycles = null;
+    this.pausedAt = null; // 一時停止時間
 
     this.startTimer = this.startTimer.bind(this);
     this.updateTimer = this.updateTimer.bind(this);
     this.displayTime = this.displayTime.bind(this);
     this.stopTimer = this.stopTimer.bind(this);
+    this.pauseTimer = this.pauseTimer.bind(this);
     this.getHistory = App.getHistory.bind(this);
     this.saveIntervalData = this.saveIntervalData.bind(this);
     this.displayCyclesToday = this.displayCyclesToday.bind(this);
@@ -43,20 +47,32 @@ class App {
     this.historyDisplay = document.getElementById('history');
     this.startButton = document.getElementById('start-button');
     this.stopButton = document.getElementById('stop-button');
+    this.pauseButton = document.getElementById('pause-button');
   }
 
   updateTimer(time = moment()) {
-    const rest = this.endAt.diff(time); // 残り時間を取得
+    const rest = this.endAt.diff(time);// 残り時間を取得
     if (rest <= 0) { // 残り時間が0以下の場合に切り替えを行う。
-      if (this.onWork) {
+      if (this.onWork) { // 作業時の場合はintervaldataを保存&更新する
         this.saveIntervalData(time); // 作業時からの切り替り時のみsaveIntervalを呼び出す。
         this.displayCyclesToday();
         this.displayHistory();
+        this.tempCycles += 1;
+        // eslint-disable-next-line no-console
+        console.log(this.tempCycles);
       }
+
+      // ここではonWorkをfalseにしている
       this.onWork = !this.onWork;
       this.startAt = time;
-      this.endAt = this.onWork ? moment(time).add(this.workLength, 'minutes')
-        : moment(time).add(this.breakLength, 'minutes');
+      if (this.onWork) { // もしもonWorkがtrueであれば25分を入れる
+        this.endAt = moment(time).add(this.workLength, 'minutes');
+      } else if (this.tempCycles === 4) {
+        this.endAt = moment(time).add(this.longBreakLength, 'minutes');
+        this.tempCycles = 0;
+      } else {
+        this.endAt = moment(time).add(this.breakLength, 'minutes');
+      }
     }
     this.displayTime(time);
   }
@@ -84,6 +100,7 @@ class App {
   toggleEvents() {
     this.startButton.addEventListener('click', this.startTimer);
     this.stopButton.addEventListener('click', this.stopTimer); // ストップボタンに対するクリックイベントでstopTimerファンクションを呼び出す。
+    // this.pauseButton.addEventListener('click', this.pauseTimer);
   }
 
   startTimer(e = null, time = moment()) {
@@ -102,12 +119,15 @@ class App {
   }
 
   resetValues() {
-    this.workLength = 25;
-    this.breakLength = 5;
+    this.workLength = 25; // 25分間
+    this.breakLength = 5; // 5分間
+    this.ongBreakLength = 15; // 15分間
     this.startAt = null;
     this.endAt = null;
+    this.pauseAt = null;
     this.isTimerStopped = true;
     this.onWork = true;
+    this.tempCycles = null;
   }
 
   stopTimer(e = null) {
@@ -117,6 +137,16 @@ class App {
     this.stopButton.disabled = true;
     window.clearInterval(this.timerUpdater);
     this.timerUpdater = null;
+    this.displayTime();
+  }
+
+  pauseTimer(e = null, time = moment()) {
+    // ここではupdateTimerを止めるのと、
+    // 押された時間を変数this.pauseAtに入れる→その値をstartTimerの中で
+    if (e) e.preventDefault();
+    // eslint-disable-next-line no-console
+    console.log('rika');
+    this.pauseAt = time;
     this.displayTime();
   }
 
@@ -196,5 +226,6 @@ class App {
 
 // ロード時にAppクラスをインスタンス化する。
 window.addEventListener('load', () => new App());
+window.localStorage.removeItem('intervalData');
 
 export default App;
