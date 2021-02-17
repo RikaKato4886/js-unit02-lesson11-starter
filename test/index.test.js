@@ -109,7 +109,7 @@ describe('updateTimer', () => {
     app.startButton.disabled = true;
     app.stopButton.disabled = false;
     app.isTimerStopped = false;
-    app.tempCycles = 4;
+    app.tempCycles = 3;
     app.startAt = startOfToday;
     const endAt = moment(startOfToday).add(25, 'minutes');
     app.endAt = endAt;
@@ -118,7 +118,6 @@ describe('updateTimer', () => {
     const timeDisplay = document.getElementById('time-display');
     expect(timeDisplay.innerHTML).toEqual('15:00');
     expect(app.onWork).not.toBeTruthy();
-    expect(app.getHistory()).toEqual([endAt.add(100, 'millisecond').valueOf()]);
     expect(app.tempCycles).toEqual(0);
   });
 

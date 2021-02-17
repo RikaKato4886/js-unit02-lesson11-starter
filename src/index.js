@@ -10,7 +10,7 @@ class App {
   constructor() {
     this.workLength = 25; // 25分間
     this.breakLength = 5; // 5分間
-    this.ongBreakLength = 15; // 15分間
+    this.longBreakLength = 15; // 15分間
     this.isTimerStopped = true; // 最初はタイマーは止まっている
     this.onWork = true; // 最初は作業からタイマーは始まる
 
@@ -57,9 +57,6 @@ class App {
         this.saveIntervalData(time); // 作業時からの切り替り時のみsaveIntervalを呼び出す。
         this.displayCyclesToday();
         this.displayHistory();
-        this.tempCycles += 1;
-        // eslint-disable-next-line no-console
-        console.log(this.tempCycles);
       }
 
       // ここではonWorkをfalseにしている
@@ -67,11 +64,18 @@ class App {
       this.startAt = time;
       if (this.onWork) { // もしもonWorkがtrueであれば25分を入れる
         this.endAt = moment(time).add(this.workLength, 'minutes');
-      } else if (this.tempCycles === 4) {
-        this.endAt = moment(time).add(this.longBreakLength, 'minutes');
-        this.tempCycles = 0;
-      } else {
-        this.endAt = moment(time).add(this.breakLength, 'minutes');
+      } else if (!this.onWork) {
+        if (this.tempCycles === 3) {
+          this.endAt = moment(time).add(this.longBreakLength, 'minutes');
+          this.tempCycles = 0;
+          // eslint-disable-next-line no-console
+          console.log(this.tempCycles);
+        } else {
+          this.endAt = moment(time).add(this.breakLength, 'minutes');
+          this.tempCycles += 1;
+          // eslint-disable-next-line no-console
+          console.log(this.tempCycles);
+        }
       }
     }
     this.displayTime(time);
@@ -108,7 +112,6 @@ class App {
     this.startButton.disabled = true;
     this.stopButton.disabled = false;
     this.isTimerStopped = false;
-
     this.startAt = time;
     const startAtClone = moment(this.startAt);
     this.endAt = startAtClone.add(this.workLength, 'minutes');
@@ -121,7 +124,7 @@ class App {
   resetValues() {
     this.workLength = 25; // 25分間
     this.breakLength = 5; // 5分間
-    this.ongBreakLength = 15; // 15分間
+    this.longBreakLength = 15; // 15分間
     this.startAt = null;
     this.endAt = null;
     this.pauseAt = null;
