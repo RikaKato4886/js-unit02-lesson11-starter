@@ -43,7 +43,7 @@ describe('saveIntervalData', () => {
 });
 
 describe('startTimer', () => {
-  test('it should disable start button', () => {
+  test('スタートボタンを押せないようにする', () => {
     document.body.innerHTML = template;
     const app = new App();
     app.startTimer();
@@ -60,6 +60,20 @@ describe('startTimer', () => {
     app.startTimer(null, now);
     expect(app.startAt.valueOf()).toEqual(now.valueOf());
     expect(app.endAt.valueOf()).toEqual(now.add(25, 'minutes').valueOf());
+  });
+  test('一時停止後にスタートする際に、止まっていた時間をendAtに追加する', () => {
+    document.body.innerHTML = template;
+    const app = new App();
+    const now = moment();
+    const startOfToday = now.startOf('day');
+    app.startButton.disabled = true;
+    app.stopButton.disabled = false;
+    app.isTimerStopped = false;
+    app.startAt = startOfToday;
+    app.endAt = moment(startOfToday).add(25, 'minutes');
+    app.pausedAt = moment(startOfToday).add(10, 'minutes'); // 10分後に止めるとする
+    
+
   });
 });
 

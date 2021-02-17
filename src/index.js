@@ -107,7 +107,19 @@ class App {
     // this.pauseButton.addEventListener('click', this.pauseTimer);
   }
 
+  pauseTimer(e = null, time = moment()) {
+    // 押された時間を変数this.pauseAtに入れる→その値をstartTimerの中で終了時間にプラスする それでdisplaytimeに表示させる
+    if (e) e.preventDefault();
+    // eslint-disable-next-line no-console
+    console.log('rika');
+    this.startButton.disabled = false;
+    this.stopButton.disabled = false;
+    this.pause.disabled = true;
+    this.pauseAt = time;
+  }
+
   startTimer(e = null, time = moment()) {
+    // もしもthis.pause.disabledがtrueだったら、という条件分岐? this.pausedAtからこの中のtimeを引いて、その値をendAtに入れる
     if (e) e.preventDefault();
     this.startButton.disabled = true;
     this.stopButton.disabled = false;
@@ -140,16 +152,6 @@ class App {
     this.stopButton.disabled = true;
     window.clearInterval(this.timerUpdater);
     this.timerUpdater = null;
-    this.displayTime();
-  }
-
-  pauseTimer(e = null, time = moment()) {
-    // ここではupdateTimerを止めるのと、
-    // 押された時間を変数this.pauseAtに入れる→その値をstartTimerの中で
-    if (e) e.preventDefault();
-    // eslint-disable-next-line no-console
-    console.log('rika');
-    this.pauseAt = time;
     this.displayTime();
   }
 
