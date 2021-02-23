@@ -18,6 +18,9 @@ export default `
                   <button class="btn btn-danger" id="stop-button" disabled>
                     Stop
                   </button>
+                  <button class="btn btn-danger" id="pause-button" disabled>
+                  Pause
+                </button>
                 </div>
               </div>
             </div>

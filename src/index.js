@@ -13,6 +13,7 @@ class App {
     this.longBreakLength = 15; // 15分間
     this.isTimerStopped = true; // 最初はタイマーは止まっている
     this.onWork = true; // 最初は作業からタイマーは始まる
+    this.onPause = false; // 最初は一時停止はなし
 
     this.timeDisplay = document.getElementById('time-display');
     this.startAt = null; // カウントダウン開始時の時間
@@ -62,9 +63,9 @@ class App {
       // ここではonWorkをfalseにしている
       this.onWork = !this.onWork;
       this.startAt = time;
-      if (this.onWork) { // もしもonWorkがtrueであれば25分を入れる
-        this.endAt = moment(time).add(this.workLength, 'minutes');
-      } else if (!this.onWork) {
+      // もしもonWorkがtrueであれば25分を入れる
+      if (this.onWork) this.endAt = moment(time).add(this.workLength, 'minutes');
+      if (!this.onWork) {
         if (this.tempCycles === 3) {
           this.endAt = moment(time).add(this.longBreakLength, 'minutes');
           this.tempCycles = 0;
@@ -104,32 +105,49 @@ class App {
   toggleEvents() {
     this.startButton.addEventListener('click', this.startTimer);
     this.stopButton.addEventListener('click', this.stopTimer); // ストップボタンに対するクリックイベントでstopTimerファンクションを呼び出す。
-    // this.pauseButton.addEventListener('click', this.pauseTimer);
+    this.pauseButton.addEventListener('click', this.pauseTimer);
   }
 
   pauseTimer(e = null, time = moment()) {
-    // 押された時間を変数this.pauseAtに入れる→その値をstartTimerの中で終了時間にプラスする それでdisplaytimeに表示させる
     if (e) e.preventDefault();
-    // eslint-disable-next-line no-console
-    console.log('rika');
+    // まずupdateTimerを止める
+    window.clearInterval(this.timerUpdater);
     this.startButton.disabled = false;
     this.stopButton.disabled = false;
-    this.pause.disabled = true;
-    this.pauseAt = time;
+    this.pauseButton.disabled = true;
+    // onPauseをtrueにする
+    this.onPause = true;
+    // 止めた時間をpausedAtに入れる
+    this.pausedAt = time;
   }
 
   startTimer(e = null, time = moment()) {
-    // もしもthis.pause.disabledがtrueだったら、という条件分岐? this.pausedAtからこの中のtimeを引いて、その値をendAtに入れる
     if (e) e.preventDefault();
+
     this.startButton.disabled = true;
     this.stopButton.disabled = false;
+    this.pauseButton.disabled = false;
     this.isTimerStopped = false;
     this.startAt = time;
     const startAtClone = moment(this.startAt);
-    this.endAt = startAtClone.add(this.workLength, 'minutes');
-    // 25分後にendAtを設定する
+
+    if (this.onPause === true) { // onPause
+      this.onPause = false;
+      // 止まった間
+      const pauseTime = time - this.pausedAt;
+      // eslint-disable-next-line no-console
+      console.log(pauseTime);
+      this.endAt = startAtClone.add(this.workLength, 'minutes').add(pauseTime, 'milliseconds');
+      // eslint-disable-next-line no-console
+      console.log(`pause後の"this.endAt"の値-->${this.endAt}`);
+    } else {
+      // eslint-disable-next-line no-shadow
+      this.endAt = startAtClone.add(this.workLength, 'minutes');
+      // eslint-disable-next-line no-console
+      console.log(`普通の"this.endAt"-->${this.endAt}`);
+    }
     this.timerUpdater = window.setInterval(this.updateTimer, 500);
-    // タイムラグがあるので、0.5秒ごとにアップデートする。
+    // タイムラグ0.5秒ごとにアップデートする。
     this.displayTime();
   }
 

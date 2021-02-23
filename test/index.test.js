@@ -15,7 +15,7 @@ describe('App.getHistory', () => {
 });
 
 describe('removeOldHistory', () => {
-  test('it should remove old history items', () => {
+  test('old history を削除する', () => {
     const startOfToday = moment().startOf('day');
     const val1 = moment(startOfToday).subtract(8, 'days').add(30, 'minutes').valueOf();
     const val2 = moment(startOfToday).subtract(5, 'days').add(60, 'minutes').valueOf();
@@ -62,18 +62,24 @@ describe('startTimer', () => {
     expect(app.endAt.valueOf()).toEqual(now.add(25, 'minutes').valueOf());
   });
   test('一時停止後にスタートする際に、止まっていた時間をendAtに追加する', () => {
+    // pause中の状態にする
     document.body.innerHTML = template;
     const app = new App();
     const now = moment();
     const startOfToday = now.startOf('day');
     app.startButton.disabled = true;
     app.stopButton.disabled = false;
+    app.pauseButton.disabled = false;
     app.isTimerStopped = false;
     app.startAt = startOfToday;
     app.endAt = moment(startOfToday).add(25, 'minutes');
-    app.pausedAt = moment(startOfToday).add(10, 'minutes'); // 10分後に止めるとする
-    
-
+    // 10分後に止めるとする
+    app.pausedAt = moment(startOfToday).add(10, 'minutes');
+    //  スタートは25分後、つまり15分止まっている
+    app.startTimer(moment(startOfToday).add(25, 'minutes'));
+    // ??? endAtに止まっていた時間をたす-25に15をたす??
+    expect(app.onPause).toBeFalsy();
+    expect(app.endAt.valueOf()).toEqual(moment(startOfToday).add(45, 'minutes'));
   });
 });
 
@@ -199,7 +205,7 @@ describe('displayTime', () => {
 });
 
 describe('displayCyclesToday', () => {
-  test('it should show the numbrer of finished work sessions on the day', () => {
+  test('当日の完了した作業サイクル数を表示する。', () => {
     document.body.innerHTML = template;
     const app = new App();
     const startOfToday = moment().startOf('day');
@@ -242,5 +248,26 @@ describe('displayHistory', () => {
     expect(fiveDaysAgoTd.innerHTML).toEqual('1回<br>達成率25%');
     expect(app.getHistory().length).toEqual(4);
     localStorage.clear();
+  });
+});
+
+describe('pauseTimer', () => {
+  test('タイマーが止まっているか確認', () => {
+    // 作業中の状態を作り出す。
+    document.body.innerHTML = template;
+    const app = new App();
+    const now = moment();
+    const startOfToday = now.startOf('day');
+    // スタートボタンが押されている
+    app.startButton.disabled = true;
+    app.stopButton.disabled = false;
+    app.pauseButton.disabled = false;
+    app.isTimerStopped = false;
+    app.startAt = startOfToday;
+    app.endAt = moment(now).add(20, 'minutes');
+    app.pauseTimer();
+    expect(app.onWork).toBeTruthy();
+    expect(app.onPause).toBeTruthy();
+    expect(app.startButton.disabled).not.toBeTruthy();
   });
 });
