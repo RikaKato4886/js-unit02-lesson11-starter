@@ -263,11 +263,11 @@ describe('pauseTimer', () => {
     app.stopButton.disabled = false;
     app.pauseButton.disabled = false;
     app.isTimerStopped = false;
-    app.startAt = startOfToday;
+    app.startAt = moment(startOfToday);
     app.endAt = moment(now).add(20, 'minutes');
     app.pauseTimer();
-    expect(app.onWork).toBeTruthy();
-    expect(app.onPause).toBeTruthy();
+    expect(app.timerUpdater).toBeTruthy();
+    expect(app.pauseAt).toBeTruthy();
     expect(app.startButton.disabled).not.toBeTruthy();
   });
 });

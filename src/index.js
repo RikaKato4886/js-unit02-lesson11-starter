@@ -8,19 +8,6 @@ const DAY = 24 * 60 * MINUTE; // 1日のミリ秒数
 
 class App {
   constructor() {
-    this.workLength = 25; // 25分間
-    this.breakLength = 5; // 5分間
-    this.longBreakLength = 15; // 15分間
-    this.isTimerStopped = true; // 最初はタイマーは止まっている
-    this.onWork = true; // 最初は作業からタイマーは始まる
-    this.onPause = false; // 最初は一時停止はなし
-
-    this.timeDisplay = document.getElementById('time-display');
-    this.startAt = null; // カウントダウン開始時の時間
-    this.endAt = null; // カウントダウン終了時の時間
-    this.tempCycles = null;
-    this.pausedAt = null; // 一時停止時間
-
     this.startTimer = this.startTimer.bind(this);
     this.updateTimer = this.updateTimer.bind(this);
     this.displayTime = this.displayTime.bind(this);
@@ -38,7 +25,6 @@ class App {
     this.displayCyclesToday();
     this.displayHistory();
     this.removeOldHistory();
-    // 初期化時にdisplayTimeを呼び出す。
   }
 
   getElements() {
@@ -52,7 +38,8 @@ class App {
   }
 
   updateTimer(time = moment()) {
-    const rest = this.endAt.diff(time);// 残り時間を取得
+    const rest = this.endAt.diff(time);
+    // 残り時間を取得
     if (rest <= 0) { // 残り時間が0以下の場合に切り替えを行う。
       if (this.onWork) { // 作業時の場合はintervaldataを保存&更新する
         this.saveIntervalData(time); // 作業時からの切り替り時のみsaveIntervalを呼び出す。
@@ -127,20 +114,18 @@ class App {
     this.startButton.disabled = true;
     this.stopButton.disabled = false;
     this.pauseButton.disabled = false;
-    this.isTimerStopped = false;
-    this.startAt = time;
     const startAtClone = moment(this.startAt);
 
-    if (this.onPause === true) { // onPause
+    if (this.onPause) { // 一時停止後であれば
       this.onPause = false;
       // 止まった間
-      const pauseTime = time - this.pausedAt;
-      // eslint-disable-next-line no-console
-      console.log(pauseTime);
+      const pauseTime = this.pausedAt.diff(time);
       this.endAt = startAtClone.add(this.workLength, 'minutes').add(pauseTime, 'milliseconds');
       // eslint-disable-next-line no-console
       console.log(`pause後の"this.endAt"の値-->${this.endAt}`);
     } else {
+      this.startAt = time;
+      this.isTimerStopped = false;
       // eslint-disable-next-line no-shadow
       this.endAt = startAtClone.add(this.workLength, 'minutes');
       // eslint-disable-next-line no-console
@@ -160,6 +145,7 @@ class App {
     this.pauseAt = null;
     this.isTimerStopped = true;
     this.onWork = true;
+    this.onPause = false; // 最初は一時停止はなし
     this.tempCycles = null;
   }
 
